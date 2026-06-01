@@ -1,0 +1,95 @@
+/* ===== Modal ===== */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+  z-index: 200; align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--paper-light); padding: 28px; width: 540px;
+  max-width: 92vw; max-height: 85vh; display: flex; flex-direction: column; gap: 14px;
+  border: 1px solid var(--paper-border);
+  animation: fadeIn 0.2s ease;
+  overflow-y: auto;
+}
+.modal input {
+  padding: 12px 16px; border: 1px solid var(--paper-border); font-family: var(--font-display);
+  font-size: 18px; font-weight: 400; outline: none; letter-spacing: 0.5px;
+  background: #fff; color: var(--ink);
+}
+.modal input:focus { border-color: var(--accent); }
+.modal textarea {
+  flex: 1; padding: 14px 16px; border: 1px solid var(--paper-border);
+  font-size: 13px; line-height: 1.7; resize: vertical; min-height: 180px; outline: none;
+  font-family: var(--font-body); background: #fff; color: var(--ink);
+}
+#taskModal textarea { min-height: 120px; }
+.modal textarea:focus { border-color: var(--accent); }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.modal-actions button {
+  padding: 10px 24px; border: 1px solid var(--paper-border); background: var(--paper);
+  font-family: var(--font-body); font-size: 12px; cursor: pointer; font-weight: 600;
+  letter-spacing: 1px; text-transform: uppercase; transition: all 0.1s; color: var(--ink);
+  min-height: 44px;
+}
+.modal-actions button:hover { background: #EDE6D8; }
+.modal-actions button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.modal-actions button.primary:hover { background: #C1442A; }
+.modal-actions button.danger { color: #c41e1e; border-color: #c41e1e; background: #fff; }
+.modal-actions button.danger:hover { background: #c41e1e; color: #fff; }
+
+/* Task modal */
+.task-modal { padding: 0; overflow: hidden; gap: 0; }
+.tm-header {
+  padding: 18px 24px 14px; font-family: var(--font-body);
+  font-size: 13px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: #fff;
+}
+.tm-body {
+  padding: 20px 24px 16px; display: flex; flex-direction: column; gap: 12px;
+}
+.tm-label {
+  font-family: var(--font-body); font-size: 10px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--ink-mute);
+}
+.task-modal input {
+  padding: 10px 0; border: none; border-bottom: 2px solid var(--paper-border);
+  font-family: var(--font-body); font-size: 16px; font-weight: 400;
+  background: transparent; color: var(--ink); letter-spacing: 0;
+}
+.task-modal input:focus { border-bottom-color: var(--accent); }
+.task-modal textarea {
+  padding: 10px 0; border: none; border-bottom: 2px solid var(--paper-border);
+  font-size: 13px; line-height: 1.6; min-height: 100px;
+  font-family: var(--font-body); background: transparent; color: var(--ink);
+  resize: vertical;
+}
+.task-modal textarea:focus { border-bottom-color: var(--accent); }
+.tm-date-row {
+  display: flex; gap: 12px; align-items: center;
+}
+.tm-date-row input[type="date"],
+.tm-date-row input[type="time"] {
+  padding: 8px 12px; border: 1px solid var(--paper-border);
+  font-family: var(--font-body); font-size: 14px; font-weight: 400;
+  background: #fff; color: var(--ink); letter-spacing: 0;
+  min-height: 44px;
+}
+.tm-date-row input[type="date"]:focus,
+.tm-date-row input[type="time"]:focus { border-color: var(--accent); }
+.tm-reminder {
+  display: flex; align-items: center; gap: 8px;
+}
+.tm-reminder label {
+  font-size: 13px; color: var(--ink); font-family: var(--font-body);
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+}
+.tm-reminder input[type="checkbox"] {
+  width: 18px; height: 18px; accent-color: var(--accent);
+}
+.tm-meta {
+  padding: 0 24px 6px; font-size: 10px; color: var(--ink-mute);
+  font-family: var(--font-body);
+}
+.tm-actions { padding: 14px 24px; border-top: 1px solid var(--paper-border); }
+.tm-actions .danger { display: none; }
+.tm-actions .danger.show { display: inline-block; }

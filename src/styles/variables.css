@@ -1,0 +1,23 @@
+:root {
+  --paper: #F4EFE6;
+  --paper-light: #FBF8F2;
+  --paper-border: #E0D9CC;
+  --ink: #2B2B2B;
+  --ink-soft: #4A4540;
+  --ink-mute: #8A8278;
+
+  /* Q1 — Urgent & Important (Do First) */
+  --q1: #D9613C;
+  /* Q2 — Important but not urgent (Schedule) */
+  --q2: #87A89E;
+  /* Q3 — Urgent but not Important (Delegate) */
+  --q3: #6B8B96;
+  /* Q4 — Not Urgent & Not Important (Delete) */
+  --q4: #696969;
+
+  --accent: #D95333;
+  --radius: 0px;
+  --font-display: 'PT Serif', 'Noto Serif SC', serif;
+  --font-condensed: 'Oswald', 'Noto Sans SC', sans-serif;
+  --font-body: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+}

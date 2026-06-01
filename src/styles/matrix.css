@@ -1,0 +1,161 @@
+/* ===== Matrix ===== */
+.matrix-wrap {
+  display: none; flex-direction: column;
+  justify-content: flex-start; padding-top: 8px;
+  min-height: calc(100vh - 112px - env(safe-area-inset-bottom, 0px));
+}
+.matrix-wrap.visible { display: flex; }
+
+.matrix-board {
+  flex: 0 0 auto; position: relative;
+  display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+  height: 62vh; max-height: 720px;
+  margin: 0 60px;
+}
+
+/* Cross-axis lines */
+.matrix-board::before {
+  content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
+  width: 2px; background: var(--ink); z-index: 5; transform: translateX(-50%);
+}
+.matrix-board::after {
+  content: ''; position: absolute; top: 50%; left: 0; right: 0;
+  height: 2px; background: var(--ink); z-index: 5; transform: translateY(-50%);
+}
+
+/* Header — The EISENHOWER MATRIX */
+.matrix-header {
+  position: absolute; top: -95px; left: 0; right: 0;
+  text-align: center; z-index: 10;
+}
+.matrix-header .h-the {
+  font-family: var(--font-display); font-style: normal; font-weight: 400;
+  font-size: 38px; color: var(--accent); line-height: 1; margin-bottom: 0;
+}
+.matrix-header .h-title {
+  font-family: var(--font-condensed); font-size: 64px; font-weight: 500;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--ink); line-height: 1;
+}
+.matrix-header .h-dots {
+  margin-top: 10px; font-size: 0;
+  border-bottom: 1px dashed rgba(43,43,43,0.3);
+}
+
+.zone { display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+.zone-label {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 4;
+  padding: 16px 20px 10px;
+  font-family: var(--font-display); font-size: 24px; letter-spacing: 0;
+  font-weight: 400; text-transform: none; line-height: 1.15;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+  pointer-events: none;
+  color: var(--ink);
+}
+.zone-label .q-main { display: block; }
+.zone-label .q-count {
+  position: absolute; top: 16px; right: 20px;
+  font-family: var(--font-body); font-size: 10px; font-weight: 600;
+  letter-spacing: 0; opacity: 0.5; color: var(--ink);
+}
+
+/* Q3 — Urgent but not Important — all caps */
+.z-nn .zone-label { text-transform: uppercase; font-size: 20px; letter-spacing: 0.5px; }
+
+.zone-body {
+  flex: 1; overflow-y: auto; padding: 72px 12px 2px;
+}
+.zone-body::-webkit-scrollbar { width: 5px; }
+.zone-body::-webkit-scrollbar-track { background: transparent; }
+.zone-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
+
+/* Zone colors — using data-q attributes */
+.zone[data-q="un"] { background: var(--q1); }
+.zone[data-q="un"] .zone-label { background: var(--q1); }
+.zone[data-q="ue"] { background: var(--q2); }
+.zone[data-q="ue"] .zone-label { background: var(--q2); }
+.zone[data-q="nn"] { background: var(--q3); }
+.zone[data-q="nn"] .zone-label { background: var(--q3); }
+.zone[data-q="ne"] { background: var(--q4); }
+.zone[data-q="ne"] .zone-label { background: var(--q4); }
+
+.zone .add-form { background: rgba(0,0,0,0.08); border-top: 1px solid rgba(255,255,255,0.18); }
+.zone .add-input, .zone .add-tips { color: #fff; background: transparent; }
+.zone .add-input::placeholder, .zone .add-tips::placeholder { color: rgba(255,255,255,0.55); }
+
+/* Add form */
+.add-form { display: flex; gap: 8px; padding: 6px 14px 8px; align-items: center; }
+.add-input {
+  flex: 1; padding: 6px 8px; border: none; border-bottom: 1px solid rgba(255,255,255,0.45);
+  font-size: 14px; outline: none; transition: all 0.15s; font-family: var(--font-body);
+  font-weight: 300; min-width: 0;
+}
+.add-input:focus { border-bottom-color: #fff; }
+.add-input:disabled { opacity: 0.3; cursor: not-allowed; }
+.add-tips {
+  flex: 2; padding: 8px 10px; border: none; border-bottom: 1px solid rgba(255,255,255,0.3);
+  font-size: 16px; outline: none; transition: all 0.15s; font-family: var(--font-body);
+  font-weight: 300; min-width: 0; font-style: italic;
+}
+.add-tips:focus { border-bottom-color: #fff; }
+
+/* Items */
+.item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 2px 16px; margin-bottom: 0;
+  transition: opacity 0.1s; cursor: grab;
+  animation: fadeIn 0.2s ease both;
+  color: #fff; font-size: 12.5px; line-height: 1.3; font-weight: 300;
+  min-height: 28px;
+  -webkit-user-select: none; user-select: none;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.item:active { cursor: grabbing; opacity: 0.6; }
+.item.dragging { opacity: 0.3; }
+.item.drag-over { border-bottom: 2px solid rgba(255,255,255,0.5); }
+.item.reordering { background: rgba(255,255,255,0.15); }
+.item.done { opacity: 0.35; }
+.item.done .item-text { text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.5); text-decoration-thickness: 1px; }
+.item-bullet {
+  width: 6px; height: 6px; border-radius: 50%; background: #fff; flex-shrink: 0;
+}
+.item.done .item-bullet { background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.4); }
+
+/* Bottom quadrants — open circle bullets */
+.zone[data-q="nn"] .item-bullet, .zone[data-q="ne"] .item-bullet {
+  background: transparent; border: 1.5px solid #fff; width: 7px; height: 7px;
+}
+.zone[data-q="nn"] .item.done .item-bullet, .zone[data-q="ne"] .item.done .item-bullet {
+  background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.3);
+}
+.item-text { flex: 1; word-break: break-word; }
+.item-tip-mark {
+  font-size: 10px; opacity: 0.6; flex-shrink: 0; margin-right: 2px;
+}
+.item-check {
+  width: 20px; height: 20px; border: none;
+  background: transparent; color: rgba(255,255,255,0.55); cursor: pointer; flex-shrink: 0;
+  font-size: 13px; font-weight: 600; transition: all 0.1s;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; border-radius: 50%;
+  min-width: 28px; min-height: 28px;
+}
+.item:hover .item-check { opacity: 1; }
+.item-check:hover { background: rgba(255,255,255,0.2); color: #fff; }
+
+.empty-msg {
+  text-align: center; padding: 52px 24px; color: rgba(255,255,255,0.55);
+  font-size: 18px; line-height: 1.6; letter-spacing: 1px;
+  font-family: var(--font-display); text-transform: none;
+}
+
+.fold-divider {
+  margin: 8px 16px; padding: 5px 10px; font-size: 10px; color: rgba(255,255,255,0.5);
+  text-align: center; cursor: pointer; user-select: none; letter-spacing: 1px;
+  font-weight: 600; text-transform: uppercase;
+  border-top: 1px dashed rgba(255,255,255,0.25);
+}
+.fold-divider:hover { color: rgba(255,255,255,0.8); }
