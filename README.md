@@ -35,7 +35,7 @@ src/
   constants.js        Quadrants, MAX=133, storage keys
   data/               storage (Preferences/localStorage) + task/note models
   views/              matrix / list / notes / calendar / modals
-  services/           local notifications / haptics / JSON export
+  services/           local notifications / haptics / JSON export / cloud sync
   utils/              dom helpers + date helpers
   styles/             10 CSS files (variables, matrix, list, notes, calendar, etc.)
 ```
@@ -45,7 +45,8 @@ src/
 - **Matrix** — 2x2 Eisenhower grid with drag-and-drop (desktop) and touch reorder (mobile)
 - **List** — Active/Done sections sorted by quadrant priority
 - **Calendar** — Month grid with due-date dots and daily task detail
-- **Notes** — Card grid with markdown-ish preview
+- **Notes** — Dual-column Reflections / Ideas with cloud sync
+- **Cloud sync** — Firebase Firestore, push on save, auto-pull on startup + every 30s
 - **Due dates** with local notifications on native platforms
 - **Export** — JSON backup via native share sheet or browser download
-- **Offline** — pure local storage, no account required
+- **Offline-first** — local storage always works, cloud syncs when online
