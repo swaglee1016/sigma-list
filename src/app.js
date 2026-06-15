@@ -16,6 +16,7 @@ import { esc, fmtTime } from './utils/dom.js';
 import { todayISO } from './utils/date.js';
 import { rescheduleAll } from './services/notifications.js';
 import { exportAllData } from './services/export.js';
+import { initSync, pullAndMerge, onPulled, startAutoPull } from './services/sync.js';
 
 import * as Matrix from './views/matrix.js';
 import * as List from './views/list.js';
@@ -35,6 +36,34 @@ export async function init() {
   tasks = await loadTasks();
   notes = await loadNotes();
   migrateData(tasks);
+
+  // Pull from cloud, merge with local
+  initSync();
+
+  // When auto-pull brings fresh data, merge into local state and refresh UI
+  onPulled((merged) => {
+    let changed = false;
+    if (merged.tasks) { tasks = merged.tasks; changed = true; }
+    if (merged.notes) { notes = merged.notes; changed = true; }
+    if (changed) {
+      saveTasks(tasks);
+      saveNotes(notes);
+      Matrix.init(tasks, refreshAll);
+      Notes.init(notes, () => { saveNotes(notes); });
+      refreshAll();
+    }
+  });
+
+  const merged = await pullAndMerge(tasks, notes);
+  if (merged) {
+    tasks = merged.tasks;
+    notes = merged.notes;
+    await saveTasks(tasks);
+    await saveNotes(notes);
+  }
+
+  startAutoPull(() => tasks, () => notes);
+
   setupGlobalCallbacks();
 
   Matrix.init(tasks, refreshAll);
@@ -161,15 +190,28 @@ function buildDOM() {
 
       <!-- Notes View -->
       <div id="notesView" class="notes-wrap">
-        <div class="notes-add-bar">
-          <div class="fields">
-            <input id="noteTitle" placeholder="Title (optional)" maxlength="100">
-            <input id="noteBody" placeholder="Write something..." maxlength="5000">
+        <div class="notes-columns">
+          <div class="notes-col" id="notesColReflections">
+            <div class="notes-col-header reflections">Reflections</div>
+            <div class="notes-col-add">
+              <input id="refTitle" placeholder="Title" maxlength="100">
+              <input id="refBody" placeholder="A thought, a feeling..." maxlength="5000">
+              <button id="refSaveBtn">Save</button>
+            </div>
+            <div class="notes-grid" id="notesGridReflections"></div>
+            <div class="notes-empty" id="notesEmptyReflections">No reflections yet<br>Capture a moment of insight</div>
           </div>
-          <button id="noteSaveBtn">Save</button>
+          <div class="notes-col" id="notesColIdeas">
+            <div class="notes-col-header ideas">Ideas</div>
+            <div class="notes-col-add">
+              <input id="ideaTitle" placeholder="Title" maxlength="100">
+              <input id="ideaBody" placeholder="A spark, a design..." maxlength="5000">
+              <button id="ideaSaveBtn">Save</button>
+            </div>
+            <div class="notes-grid" id="notesGridIdeas"></div>
+            <div class="notes-empty" id="notesEmptyIdeas">No ideas yet<br>Jot down a spark before it fades</div>
+          </div>
         </div>
-        <div class="notes-grid" id="notesGrid"></div>
-        <div class="notes-empty" id="notesEmpty">No notes yet<br>Write down your thoughts</div>
       </div>
     </div>
 
@@ -239,6 +281,7 @@ function buildDOM() {
     <!-- Note Modal -->
     <div class="modal-overlay" id="noteModal">
       <div class="modal">
+        <div class="note-modal-cat" id="noteModalCategory"></div>
         <input id="modalTitle" placeholder="Title (optional)" maxlength="100">
         <textarea id="modalBody" placeholder="Write something..."></textarea>
         <div class="modal-actions">
@@ -309,14 +352,17 @@ function wireEvents() {
   document.getElementById('notesView').addEventListener('click', e => {
     Notes.handleNotesClick(e);
   });
-  document.getElementById('noteSaveBtn').addEventListener('click', () => {
-    const titleEl = document.getElementById('noteTitle');
-    const bodyEl = document.getElementById('noteBody');
-    const ok = Notes.addNote(titleEl.value.trim(), bodyEl.value.trim());
-    if (ok) {
-      titleEl.value = '';
-      bodyEl.value = '';
-    }
+  document.getElementById('refSaveBtn').addEventListener('click', () => {
+    const titleEl = document.getElementById('refTitle');
+    const bodyEl = document.getElementById('refBody');
+    const ok = Notes.addNote(titleEl.value.trim(), bodyEl.value.trim(), 'reflections');
+    if (ok) { titleEl.value = ''; bodyEl.value = ''; }
+  });
+  document.getElementById('ideaSaveBtn').addEventListener('click', () => {
+    const titleEl = document.getElementById('ideaTitle');
+    const bodyEl = document.getElementById('ideaBody');
+    const ok = Notes.addNote(titleEl.value.trim(), bodyEl.value.trim(), 'ideas');
+    if (ok) { titleEl.value = ''; bodyEl.value = ''; }
   });
 
   // Calendar click delegation

@@ -23,15 +23,6 @@
   .matrix-header .h-the {
     font-size: 26px;
   }
-  .notes-grid {
-    grid-template-columns: 1fr;
-  }
-  .notes-add-bar {
-    flex-direction: column;
-  }
-  .notes-add-bar button {
-    width: 100%;
-  }
   .nav {
     padding: 0 16px;
     padding-top: env(safe-area-inset-top, 0px);

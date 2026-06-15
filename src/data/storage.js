@@ -1,4 +1,5 @@
 import { STORAGE_KEYS } from '../constants.js';
+import { pushAll } from '../services/sync.js';
 
 const isNative = () => {
   try {
@@ -40,17 +41,34 @@ export async function save(key, data) {
 }
 
 export async function loadTasks() {
-  return (await load(STORAGE_KEYS.tasks)) || { un: [], ue: [], nn: [], ne: [] };
+  const t = (await load(STORAGE_KEYS.tasks)) || { un: [], ue: [], nn: [], ne: [] };
+  if (_tasksCache === null) _tasksCache = t;
+  return t;
+}
+
+let _tasksCache = null;
+let _notesCache = null;
+
+async function syncIfReady() {
+  if (_tasksCache !== null && _notesCache !== null) {
+    await pushAll(_tasksCache, _notesCache);
+  }
 }
 
 export async function saveTasks(tasks) {
+  _tasksCache = tasks;
   await save(STORAGE_KEYS.tasks, tasks);
+  await syncIfReady();
 }
 
 export async function loadNotes() {
-  return (await load(STORAGE_KEYS.notes)) || [];
+  const n = (await load(STORAGE_KEYS.notes)) || [];
+  if (_notesCache === null) _notesCache = n;
+  return n;
 }
 
 export async function saveNotes(notes) {
+  _notesCache = notes;
   await save(STORAGE_KEYS.notes, notes);
+  await syncIfReady();
 }

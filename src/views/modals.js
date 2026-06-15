@@ -136,6 +136,11 @@ export function openNoteModal(note) {
   editingNoteId = note.id;
   document.getElementById('modalTitle').value = note.title === 'Untitled' ? '' : note.title;
   document.getElementById('modalBody').value = note.body;
+  const catEl = document.getElementById('noteModalCategory');
+  if (catEl) {
+    catEl.textContent = (note.category || 'reflections') === 'reflections' ? 'Reflections' : 'Ideas';
+    catEl.className = 'note-modal-cat ' + (note.category || 'reflections');
+  }
   document.getElementById('noteModal').classList.add('open');
 }
 

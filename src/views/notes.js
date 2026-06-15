@@ -9,13 +9,14 @@ export function init(n, onChange) {
   onDataChange = onChange;
 }
 
-export function addNote(title, body) {
+export function addNote(title, body, category) {
   if (!title && !body) return false;
   notes.unshift({
     id: Date.now() * 1000 + Math.floor(Math.random() * 1000),
     title: title || 'Untitled',
     body: body || '',
     ts: Date.now(),
+    category: category || 'reflections',
   });
   save();
   renderNotes();
@@ -27,18 +28,24 @@ function save() {
   if (onDataChange) onDataChange();
 }
 
-export function renderNotes() {
-  const grid = document.getElementById('notesGrid');
-  const empty = document.getElementById('notesEmpty');
+function catNotes(cat) {
+  return notes.filter(n => (n.category || 'reflections') === cat);
+}
+
+function renderCol(cat, gridId, emptyId) {
+  const grid = document.getElementById(gridId);
+  const empty = document.getElementById(emptyId);
   if (!grid) return;
 
-  if (notes.length === 0) {
+  const items = catNotes(cat);
+
+  if (items.length === 0) {
     grid.innerHTML = '';
     if (empty) empty.style.display = 'block';
     return;
   }
   if (empty) empty.style.display = 'none';
-  grid.innerHTML = notes.map(n => `
+  grid.innerHTML = items.map(n => `
     <div class="note-card" data-action="open-note" data-id="${n.id}">
       <button class="note-del" data-action="delete-note" data-id="${n.id}">&times;</button>
       <div class="note-title">${esc(n.title)}</div>
@@ -46,6 +53,11 @@ export function renderNotes() {
       <div class="note-meta"><span>${fmtTime(n.ts)}</span></div>
     </div>
   `).join('');
+}
+
+export function renderNotes() {
+  renderCol('reflections', 'notesGridReflections', 'notesEmptyReflections');
+  renderCol('ideas', 'notesGridIdeas', 'notesEmptyIdeas');
 }
 
 export function handleNotesClick(e) {

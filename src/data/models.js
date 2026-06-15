@@ -15,11 +15,12 @@ export function createTask(text = '', tips = '') {
   };
 }
 
-export function createNote(title = '', body = '') {
+export function createNote(title = '', body = '', category = 'reflections') {
   return {
     id: uid(),
     title: title || 'Untitled',
     body: body || '',
+    category,
     ts: Date.now(),
   };
 }
