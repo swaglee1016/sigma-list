@@ -1,48 +1,41 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+/**
+ * Cloud sync via Vercel proxy → Firestore.
+ *
+ * Web:          /api/sync  (Vite proxy in dev, direct Vercel function in prod)
+ * Android:      https://sigma-list.vercel.app/api/sync  (no local server)
+ *
+ * Firestore REST API uses typed value fields:
+ *   { fields: { value: { stringValue: "..." }, updatedAt: { integerValue: "..." } } }
+ */
 
-const firebaseConfig = {
-  apiKey: "AIzaSyA75VRzI-eE2mC2rXsY_biUZwye0GbKHPw",
-  authDomain: "sigma-list.firebaseapp.com",
-  projectId: "sigma-list",
-  storageBucket: "sigma-list.firebasestorage.app",
-  messagingSenderId: "565476484381",
-  appId: "1:565476484381:web:447d75343c1909f7b1edf4",
-};
+// Vercel proxy base — Android must use the full URL since there's no local server
+const VERCEL = 'https://sigma-list.vercel.app/api/sync';
+let BASE = '/api/sync';
 
-let db = null;
+try {
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    BASE = VERCEL;
+  }
+} catch {}
+
 let ready = false;
 let onSync = null;
 let pollTimer = null;
 let visibilityHandler = null;
 
 export function initSync() {
-  try {
-    const app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-    ready = true;
-    console.log('[Sync] Firebase ready; push/pull active');
-  } catch (e) {
-    console.warn('Firebase init failed, working offline:', e.message);
-    ready = false;
-  }
+  ready = true;
+  console.log('[Sync] REST API ready; push/pull active');
 }
 
 export function isReady() {
   return ready;
 }
 
-/**
- * Register a callback that will be called after fresh cloud data is merged.
- * app.js passes its refreshAll so the UI updates after a pull.
- */
 export function onPulled(cb) {
   onSync = cb;
 }
 
-/**
- * Start automatic pulls: on tab focus + every `intervalMs`.
- */
 export function startAutoPull(getTasks, getNotes, intervalMs = 30000) {
   stopAutoPull();
 
@@ -51,13 +44,11 @@ export function startAutoPull(getTasks, getNotes, intervalMs = 30000) {
     if (merged && onSync) onSync(merged);
   };
 
-  // Pull when user switches back to this tab
   visibilityHandler = () => {
     if (document.visibilityState === 'visible') doPull();
   };
   document.addEventListener('visibilitychange', visibilityHandler);
 
-  // Periodic polling
   pollTimer = setInterval(doPull, intervalMs);
 }
 
@@ -72,18 +63,26 @@ export function stopAutoPull() {
   }
 }
 
-/** Push local tasks + notes to cloud */
+/** Push local tasks + notes to cloud via Vercel proxy */
 export async function pushAll(tasks, notes) {
-  if (!ready || !db) return;
+  if (!ready) return;
   try {
+    const body = (collection, data) => JSON.stringify({
+      fields: {
+        value: { stringValue: JSON.stringify(data) },
+        updatedAt: { integerValue: String(Date.now()) },
+      },
+    });
     await Promise.all([
-      setDoc(doc(db, 'data', 'tasks'), {
-        value: JSON.stringify(tasks),
-        updatedAt: Date.now(),
+      fetch(`${BASE}?doc=tasks`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: body('tasks', tasks),
       }),
-      setDoc(doc(db, 'data', 'notes'), {
-        value: JSON.stringify(notes),
-        updatedAt: Date.now(),
+      fetch(`${BASE}?doc=notes`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: body('notes', notes),
       }),
     ]);
   } catch (e) {
@@ -93,21 +92,31 @@ export async function pushAll(tasks, notes) {
 
 /** Pull cloud data and merge into local. Returns merged { tasks, notes } or null. */
 export async function pullAndMerge(localTasks, localNotes) {
-  if (!ready || !db) return null;
+  if (!ready) return null;
   try {
-    const [taskSnap, noteSnap] = await Promise.all([
-      getDoc(doc(db, 'data', 'tasks')),
-      getDoc(doc(db, 'data', 'notes')),
+    const [taskRes, noteRes] = await Promise.all([
+      fetch(`${BASE}?doc=tasks`),
+      fetch(`${BASE}?doc=notes`),
     ]);
 
     let cloudTasks = null;
     let cloudNotes = null;
 
-    if (taskSnap.exists()) {
-      try { cloudTasks = JSON.parse(taskSnap.data().value); } catch {}
+    if (taskRes.ok) {
+      try {
+        const data = await taskRes.json();
+        if (data.fields && data.fields.value && data.fields.value.stringValue) {
+          cloudTasks = JSON.parse(data.fields.value.stringValue);
+        }
+      } catch {}
     }
-    if (noteSnap.exists()) {
-      try { cloudNotes = JSON.parse(noteSnap.data().value); } catch {}
+    if (noteRes.ok) {
+      try {
+        const data = await noteRes.json();
+        if (data.fields && data.fields.value && data.fields.value.stringValue) {
+          cloudNotes = JSON.parse(data.fields.value.stringValue);
+        }
+      } catch {}
     }
 
     if (!cloudTasks && !cloudNotes) return null;

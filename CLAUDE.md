@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-Sigma List — 艾森豪威尔矩阵待办应用，Vite + Capacitor 跨平台（Web / Android / iOS）。米色海报风，全站 UI 英文。本地存储 + Firebase Firestore 云同步。
+Sigma List — 艾森豪威尔矩阵待办应用，Vite + Capacitor 跨平台（Web / Android / iOS）。米色海报风，全站 UI 英文。本地存储 + Firestore REST API 云同步。
 
 ## 开发命令
 
