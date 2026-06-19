@@ -1,56 +1,53 @@
 const API_KEY = 'AIzaSyA75VRzI-eE2mC2rXsY_biUZwye0GbKHPw';
 const BASE = 'https://firestore.googleapis.com/v1/projects/sigma-list/databases/(default)/documents/data';
 
-// Vercel Edge Function — runs at the edge, no Node.js runtime needed.
-// Uses standard Web API (Request/Response).
+module.exports = async function handler(req, res) {
+  // CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-export const config = { runtime: 'edge' };
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 200;
+    return res.end();
+  }
 
-export default async function handler(request) {
-  const url = new URL(request.url);
+  // Parse doc from URL
+  const url = new URL(req.url, 'https://sigma-list.vercel.app');
   const doc = url.searchParams.get('doc');
 
   if (!doc || !['tasks', 'notes'].includes(doc)) {
-    return new Response(JSON.stringify({ error: 'doc must be tasks or notes' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    res.statusCode = 400;
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify({ error: 'doc must be tasks or notes' }));
   }
-
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-    });
-  }
-
-  const upstreamUrl = `${BASE}/${doc}?key=${API_KEY}`;
 
   try {
-    const fetchOptions = { method: request.method === 'GET' ? 'GET' : 'PATCH' };
-    if (request.method === 'PATCH' || request.method === 'POST') {
-      fetchOptions.headers = { 'Content-Type': 'application/json' };
-      fetchOptions.body = await request.text();
+    const isWrite = req.method === 'PATCH' || req.method === 'POST';
+    const fetchOpts = {
+      method: isWrite ? 'PATCH' : 'GET',
+      headers: isWrite ? { 'Content-Type': 'application/json' } : undefined,
+    };
+
+    if (isWrite) {
+      // Read body
+      const raw = await new Promise((resolve) => {
+        let d = '';
+        req.on('data', (c) => { d += c; });
+        req.on('end', () => resolve(d));
+      });
+      fetchOpts.body = raw;
     }
 
-    const upstream = await fetch(upstreamUrl, fetchOptions);
+    const upstream = await fetch(`${BASE}/${doc}?key=${API_KEY}`, fetchOpts);
     const data = await upstream.json();
 
-    return new Response(JSON.stringify(data), {
-      status: upstream.status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    res.statusCode = upstream.status;
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify(data));
   } catch (e) {
-    return new Response(JSON.stringify({ error: 'Firestore unreachable', detail: e.message }), {
-      status: 502,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    res.statusCode = 502;
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify({ error: 'unreachable', detail: e.message }));
   }
-}
+};
