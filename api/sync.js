@@ -13,7 +13,7 @@ function parseQuery(url) {
   return q;
 }
 
-async function readBody(req) {
+function readBody(req) {
   return new Promise((resolve) => {
     let data = '';
     req.on('data', (chunk) => { data += chunk; });
@@ -23,7 +23,7 @@ async function readBody(req) {
   });
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -61,4 +61,4 @@ export default async function handler(req, res) {
     res.setHeader('Content-Type', 'application/json');
     return res.end(JSON.stringify({ error: 'Firestore unreachable', detail: e.message }));
   }
-}
+};
