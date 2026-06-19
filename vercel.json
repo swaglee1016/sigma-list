@@ -1,8 +1,8 @@
 {
   "installCommand": "npm install",
-  "buildCommand": "npx vite build",
+  "buildCommand": "npx vite build && mkdir -p dist/api && cp api/sync.mjs dist/api/",
+  "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/assets/(.*)", "destination": "/dist/assets/$1" },
-    { "source": "/((?!api).*)", "destination": "/dist/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
