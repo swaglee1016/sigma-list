@@ -2,5 +2,11 @@
   "installCommand": "npm install",
   "buildCommand": "npx vite build",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "functions": {
+    "api/sync.js": { "memory": 256, "maxDuration": 10 }
+  },
+  "rewrites": [
+    { "source": "/api/sync", "destination": "/api/sync" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

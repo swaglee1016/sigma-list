@@ -8,15 +8,17 @@
  *   { fields: { value: { stringValue: "..." }, updatedAt: { integerValue: "..." } } }
  */
 
-// Vercel proxy base — Android must use the full URL since there's no local server
-const VERCEL = 'https://sigma-list.vercel.app/api/sync';
-let BASE = '/api/sync';
+/** Vercel API proxy base. Detects platform at call time, not module load time. */
+const VERCEL = 'https://sigma-list.vercel.app';
 
-try {
-  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-    BASE = VERCEL;
-  }
-} catch {}
+function getBase() {
+  try {
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+      return `${VERCEL}/api/sync`;
+    }
+  } catch {}
+  return '/api/sync';
+}
 
 let ready = false;
 let onSync = null;
@@ -66,23 +68,24 @@ export function stopAutoPull() {
 /** Push local tasks + notes to cloud via Vercel proxy */
 export async function pushAll(tasks, notes) {
   if (!ready) return;
+  const base = getBase();
   try {
-    const body = (collection, data) => JSON.stringify({
+    const body = (data) => JSON.stringify({
       fields: {
         value: { stringValue: JSON.stringify(data) },
         updatedAt: { integerValue: String(Date.now()) },
       },
     });
     await Promise.all([
-      fetch(`${BASE}?doc=tasks`, {
+      fetch(`${base}?doc=tasks`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: body('tasks', tasks),
+        body: body(tasks),
       }),
-      fetch(`${BASE}?doc=notes`, {
+      fetch(`${base}?doc=notes`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: body('notes', notes),
+        body: body(notes),
       }),
     ]);
   } catch (e) {
@@ -93,10 +96,11 @@ export async function pushAll(tasks, notes) {
 /** Pull cloud data and merge into local. Returns merged { tasks, notes } or null. */
 export async function pullAndMerge(localTasks, localNotes) {
   if (!ready) return null;
+  const base = getBase();
   try {
     const [taskRes, noteRes] = await Promise.all([
-      fetch(`${BASE}?doc=tasks`),
-      fetch(`${BASE}?doc=notes`),
+      fetch(`${base}?doc=tasks`),
+      fetch(`${base}?doc=notes`),
     ]);
 
     let cloudTasks = null;
