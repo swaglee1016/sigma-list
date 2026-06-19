@@ -1,8 +1,8 @@
 {
   "installCommand": "npm install",
   "buildCommand": "npx vite build",
-  "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/assets/(.*)", "destination": "/dist/assets/$1" },
+    { "source": "/(.*)", "destination": "/dist/index.html" }
   ]
 }

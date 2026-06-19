@@ -1,8 +1,7 @@
 const API_KEY = 'AIzaSyA75VRzI-eE2mC2rXsY_biUZwye0GbKHPw';
 const BASE = 'https://firestore.googleapis.com/v1/projects/sigma-list/databases/(default)/documents/data';
 
-module.exports = async function handler(req, res) {
-  // CORS
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -12,7 +11,6 @@ module.exports = async function handler(req, res) {
     return res.end();
   }
 
-  // Parse doc from URL
   const url = new URL(req.url, 'https://sigma-list.vercel.app');
   const doc = url.searchParams.get('doc');
 
@@ -30,7 +28,6 @@ module.exports = async function handler(req, res) {
     };
 
     if (isWrite) {
-      // Read body
       const raw = await new Promise((resolve) => {
         let d = '';
         req.on('data', (c) => { d += c; });
@@ -50,4 +47,4 @@ module.exports = async function handler(req, res) {
     res.setHeader('Content-Type', 'application/json');
     return res.end(JSON.stringify({ error: 'unreachable', detail: e.message }));
   }
-};
+}
