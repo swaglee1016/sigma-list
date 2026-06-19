@@ -1,6 +1,11 @@
 {
   "installCommand": "npm install",
   "buildCommand": "npx vite build",
+  "functions": {
+    "api/sync.js": {
+      "runtime": "@vercel/node@3"
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/assets/(.*)", "destination": "/dist/assets/$1" },
