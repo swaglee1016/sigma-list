@@ -1,11 +1,11 @@
 /**
  * Vercel serverless function — TiDB Cloud sync proxy.
- *
- * GET  /api/sync?doc=tasks  → read sync_data row
- * PATCH /api/sync?doc=tasks → upsert sync_data row
+ * GET /api/sync?doc=tasks → read / PATCH → upsert
  */
 
-import mysql from 'mysql2/promise';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const mysql = require('mysql2/promise');
 
 const DB = {
   host: 'gateway01.ap-southeast-1.prod.aws.tidbcloud.com',
@@ -15,10 +15,6 @@ const DB = {
   database: 'sigma',
   ssl: { rejectUnauthorized: true },
 };
-
-async function getConn() {
-  return mysql.createConnection(DB);
-}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -38,12 +34,10 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: 'doc must be tasks or notes' }));
   }
 
-  const conn = await getConn();
+  const conn = await mysql.createConnection(DB);
   try {
     if (req.method === 'GET') {
-      const [rows] = await conn.execute(
-        'SELECT data FROM sync_data WHERE doc_type = ?', [doc],
-      );
+      const [rows] = await conn.execute('SELECT data FROM sync_data WHERE doc_type = ?', [doc]);
       const raw = rows.length ? rows[0].data : null;
       const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
       res.statusCode = 200;
