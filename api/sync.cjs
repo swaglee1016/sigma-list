@@ -1,10 +1,9 @@
 /**
  * Vercel serverless function — TiDB Cloud sync proxy.
- * GET /api/sync?doc=tasks → read / PATCH → upsert
+ * GET  /api/sync?doc=tasks  → read
+ * PATCH /api/sync?doc=tasks → upsert
  */
-
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
+'use strict';
 const mysql = require('mysql2/promise');
 
 const DB = {
@@ -16,7 +15,7 @@ const DB = {
   ssl: { rejectUnauthorized: true },
 };
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -34,7 +33,15 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: 'doc must be tasks or notes' }));
   }
 
-  const conn = await mysql.createConnection(DB);
+  let conn;
+  try {
+    conn = await mysql.createConnection(DB);
+  } catch (e) {
+    res.statusCode = 502;
+    res.setHeader('Content-Type', 'application/json');
+    return res.end(JSON.stringify({ error: 'db connect failed', detail: e.message }));
+  }
+
   try {
     if (req.method === 'GET') {
       const [rows] = await conn.execute('SELECT data FROM sync_data WHERE doc_type = ?', [doc]);
@@ -64,7 +71,7 @@ export default async function handler(req, res) {
   } finally {
     await conn.end();
   }
-}
+};
 
 function readBody(req) {
   return new Promise((resolve) => {
