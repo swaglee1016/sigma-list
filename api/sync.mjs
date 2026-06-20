@@ -1,5 +1,24 @@
-const API_KEY = 'AIzaSyA75VRzI-eE2mC2rXsY_biUZwye0GbKHPw';
-const BASE = 'https://firestore.googleapis.com/v1/projects/sigma-list/databases/(default)/documents/data';
+/**
+ * Vercel serverless function — TiDB Cloud sync proxy.
+ *
+ * GET  /api/sync?doc=tasks  → read sync_data row
+ * PATCH /api/sync?doc=tasks → upsert sync_data row
+ */
+
+import mysql from 'mysql2/promise';
+
+const DB = {
+  host: 'gateway01.ap-southeast-1.prod.aws.tidbcloud.com',
+  port: 4000,
+  user: '2e3Zv8Kes7yg8Lk.root',
+  password: process.env.TIDB_PASSWORD,
+  database: 'sigma',
+  ssl: { rejectUnauthorized: true },
+};
+
+async function getConn() {
+  return mysql.createConnection(DB);
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -7,44 +26,56 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
-    res.statusCode = 200;
+    res.statusCode = 204;
     return res.end();
   }
 
-  const url = new URL(req.url, 'https://sigma-list.vercel.app');
+  const url = new URL(req.url, 'http://localhost');
   const doc = url.searchParams.get('doc');
-
   if (!doc || !['tasks', 'notes'].includes(doc)) {
     res.statusCode = 400;
     res.setHeader('Content-Type', 'application/json');
     return res.end(JSON.stringify({ error: 'doc must be tasks or notes' }));
   }
 
+  const conn = await getConn();
   try {
-    const isWrite = req.method === 'PATCH' || req.method === 'POST';
-    const fetchOpts = {
-      method: isWrite ? 'PATCH' : 'GET',
-      headers: isWrite ? { 'Content-Type': 'application/json' } : undefined,
-    };
-
-    if (isWrite) {
-      const raw = await new Promise((resolve) => {
-        let d = '';
-        req.on('data', (c) => { d += c; });
-        req.on('end', () => resolve(d));
-      });
-      fetchOpts.body = raw;
+    if (req.method === 'GET') {
+      const [rows] = await conn.execute(
+        'SELECT data FROM sync_data WHERE doc_type = ?', [doc],
+      );
+      const raw = rows.length ? rows[0].data : null;
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ data }));
     }
 
-    const upstream = await fetch(`${BASE}/${doc}?key=${API_KEY}`, fetchOpts);
-    const data = await upstream.json();
+    if (req.method === 'PATCH') {
+      const body = await readBody(req);
+      const { data, updatedAt } = JSON.parse(body);
+      await conn.execute(
+        `INSERT INTO sync_data (doc_type, data, updated_at) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE data = VALUES(data), updated_at = VALUES(updated_at)`,
+        [doc, data, updatedAt],
+      );
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      return res.end(JSON.stringify({ ok: true }));
+    }
 
-    res.statusCode = upstream.status;
+    res.statusCode = 405;
     res.setHeader('Content-Type', 'application/json');
-    return res.end(JSON.stringify(data));
-  } catch (e) {
-    res.statusCode = 502;
-    res.setHeader('Content-Type', 'application/json');
-    return res.end(JSON.stringify({ error: 'unreachable', detail: e.message }));
+    return res.end(JSON.stringify({ error: 'method not allowed' }));
+  } finally {
+    await conn.end();
   }
+}
+
+function readBody(req) {
+  return new Promise((resolve) => {
+    let d = '';
+    req.on('data', (c) => { d += c; });
+    req.on('end', () => resolve(d));
+  });
 }

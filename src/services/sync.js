@@ -1,14 +1,10 @@
 /**
- * Cloud sync via Vercel proxy → Firestore.
+ * Cloud sync → TiDB Cloud via /api/sync proxy.
  *
- * Web:          /api/sync  (Vite proxy in dev, direct Vercel function in prod)
- * Android:      https://sigma-list.vercel.app/api/sync  (no local server)
- *
- * Firestore REST API uses typed value fields:
- *   { fields: { value: { stringValue: "..." }, updatedAt: { integerValue: "..." } } }
+ * Web:     /api/sync  (Vite proxy in dev, Vercel function in prod)
+ * Android: https://YOUR_VERCEL.vercel.app/api/sync
  */
 
-/** Vercel API proxy base. Detects platform at call time, not module load time. */
 const VERCEL = 'https://sigma-list.vercel.app';
 
 function getBase() {
@@ -27,7 +23,7 @@ let visibilityHandler = null;
 
 export function initSync() {
   ready = true;
-  console.log('[Sync] REST API ready; push/pull active');
+  console.log('[Sync] TiDB Cloud ready');
 }
 
 export function isReady() {
@@ -65,27 +61,21 @@ export function stopAutoPull() {
   }
 }
 
-/** Push local tasks + notes to cloud via Vercel proxy */
+/** Push local tasks + notes → TiDB Cloud */
 export async function pushAll(tasks, notes) {
   if (!ready) return;
   const base = getBase();
   try {
-    const body = (data) => JSON.stringify({
-      fields: {
-        value: { stringValue: JSON.stringify(data) },
-        updatedAt: { integerValue: String(Date.now()) },
-      },
-    });
     await Promise.all([
       fetch(`${base}?doc=tasks`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: body(tasks),
+        body: JSON.stringify({ data: JSON.stringify(tasks), updatedAt: Date.now() }),
       }),
       fetch(`${base}?doc=notes`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: body(notes),
+        body: JSON.stringify({ data: JSON.stringify(notes), updatedAt: Date.now() }),
       }),
     ]);
   } catch (e) {
@@ -93,7 +83,7 @@ export async function pushAll(tasks, notes) {
   }
 }
 
-/** Pull cloud data and merge into local. Returns merged { tasks, notes } or null. */
+/** Pull cloud data → merge into local. Returns { tasks, notes } or null. */
 export async function pullAndMerge(localTasks, localNotes) {
   if (!ready) return null;
   const base = getBase();
@@ -108,18 +98,14 @@ export async function pullAndMerge(localTasks, localNotes) {
 
     if (taskRes.ok) {
       try {
-        const data = await taskRes.json();
-        if (data.fields && data.fields.value && data.fields.value.stringValue) {
-          cloudTasks = JSON.parse(data.fields.value.stringValue);
-        }
+        const json = await taskRes.json();
+        cloudTasks = parseData(json.data);
       } catch {}
     }
     if (noteRes.ok) {
       try {
-        const data = await noteRes.json();
-        if (data.fields && data.fields.value && data.fields.value.stringValue) {
-          cloudNotes = JSON.parse(data.fields.value.stringValue);
-        }
+        const json = await noteRes.json();
+        cloudNotes = parseData(json.data);
       } catch {}
     }
 
@@ -133,6 +119,11 @@ export async function pullAndMerge(localTasks, localNotes) {
     console.warn('Sync pull failed:', e.message);
     return null;
   }
+}
+
+function parseData(raw) {
+  if (raw === null || raw === undefined) return null;
+  return typeof raw === 'string' ? JSON.parse(raw) : raw;
 }
 
 function mergeTasks(local, cloud) {
