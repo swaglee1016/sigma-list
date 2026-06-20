@@ -1,5 +1,3 @@
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
 const { createConnection } = require('mysql2/promise');
 
 const DB = {
@@ -11,7 +9,7 @@ const DB = {
   ssl: { rejectUnauthorized: true },
 };
 
-export default async (req, res) => {
+module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
