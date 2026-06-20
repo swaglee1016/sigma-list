@@ -1,6 +1,6 @@
 {
   "builds": [
-    { "src": "api/sync.js", "use": "@vercel/node" },
+    { "src": "api/sync.mjs", "use": "@vercel/node" },
     { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
   ],
   "routes": [
