@@ -1,6 +1,10 @@
 {
   "builds": [
-    { "src": "api/sync.cjs", "use": "@vercel/node" },
+    { "src": "api/sync.js", "use": "@vercel/node" },
     { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
+  ],
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/.*", "dest": "/index.html" }
   ]
 }

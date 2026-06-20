@@ -1,6 +1,4 @@
-'use strict';
-
-module.exports = (req, res) => {
+export default (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const doc = url.searchParams.get('doc');
   res.statusCode = 200;
