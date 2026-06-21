@@ -1,10 +1,3 @@
 {
-  "builds": [
-    { "src": "api/sync/index.cjs", "use": "@vercel/node" },
-    { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
-  ],
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/.*", "dest": "/index.html" }
-  ]
+  "buildCommand": "npm install && node scripts/build-vercel.cjs"
 }
