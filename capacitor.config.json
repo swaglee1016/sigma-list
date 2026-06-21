@@ -3,7 +3,8 @@
   "appName": "Sigma List",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https"
+    "url": "https://sigma-list-d7gxfeaenc4b950f6-1341897009.tcloudbaseapp.com",
+    "cleartext": false
   },
   "plugins": {
     "StatusBar": {
