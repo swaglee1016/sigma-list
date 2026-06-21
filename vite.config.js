@@ -1,6 +1,5 @@
 import { defineConfig, loadEnv } from 'vite';
 import { createConnection } from 'mysql2/promise';
-import vercel from 'vite-plugin-vercel';
 
 function apiPlugin(env) {
   const DB = {
@@ -84,13 +83,6 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       open: true,
     },
-    plugins: [apiPlugin(env), vercel({
-    config: {
-      routes: [
-        { handle: 'filesystem' },
-        { src: '^/(.*)$', dest: '/index.html' },
-      ],
-    },
-  })],
+    plugins: [apiPlugin(env)],
   };
 });
