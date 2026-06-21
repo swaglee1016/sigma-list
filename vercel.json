@@ -1,3 +1,4 @@
 {
-  "buildCommand": "npm install && node scripts/build-vercel.cjs"
+  "buildCommand": "npm install && npm run build && mkdir -p dist/api && cp api/sync.cjs dist/api/sync.cjs",
+  "outputDirectory": "dist"
 }
