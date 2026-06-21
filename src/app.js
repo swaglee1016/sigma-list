@@ -38,7 +38,7 @@ export async function init() {
   migrateData(tasks);
 
   // Pull from cloud, merge with local
-  initSync();
+  await initSync();
 
   // When auto-pull brings fresh data, merge into local state and refresh UI
   onPulled((merged) => {

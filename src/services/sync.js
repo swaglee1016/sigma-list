@@ -1,29 +1,32 @@
 /**
- * Cloud sync → TiDB Cloud via /api/sync proxy.
+ * Cloud sync — Tencent CloudBase via @cloudbase/js-sdk.
  *
- * Web:     /api/sync  (Vite proxy in dev, Vercel function in prod)
- * Android: https://YOUR_VERCEL.vercel.app/api/sync
+ * Browser-direct document database. No backend proxy needed.
+ * Anonymous auth — no login required.
  */
 
-const VERCEL = 'https://sigma-list.vercel.app';
+import cloudbase from '@cloudbase/js-sdk';
 
-function getBase() {
-  try {
-    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
-      return `${VERCEL}/api/sync`;
-    }
-  } catch {}
-  return '/api/sync';
-}
+const ENV_ID = 'sigma-list-d7gxfeaenc4b950f6';
 
+let db = null;
 let ready = false;
 let onSync = null;
 let pollTimer = null;
 let visibilityHandler = null;
 
-export function initSync() {
-  ready = true;
-  console.log('[Sync] TiDB Cloud ready');
+/** One-time init: anonymous sign-in → get database handle */
+export async function initSync() {
+  try {
+    const app = cloudbase.init({ env: ENV_ID });
+    const auth = app.auth();
+    await auth.anonymousAuthProvider().signIn();
+    db = app.database();
+    ready = true;
+    console.log('[Sync] CloudBase ready');
+  } catch (e) {
+    console.warn('[Sync] CloudBase init failed:', e.message);
+  }
 }
 
 export function isReady() {
@@ -61,52 +64,49 @@ export function stopAutoPull() {
   }
 }
 
-/** Push local tasks + notes → TiDB Cloud */
+/** Push local tasks + notes → CloudBase */
 export async function pushAll(tasks, notes) {
-  if (!ready) return;
-  const base = getBase();
+  if (!ready || !db) return;
+  const coll = db.collection('sync_data');
+  const now = Date.now();
   try {
     await Promise.all([
-      fetch(`${base}?doc=tasks`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: JSON.stringify(tasks), updatedAt: Date.now() }),
-      }),
-      fetch(`${base}?doc=notes`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: JSON.stringify(notes), updatedAt: Date.now() }),
-      }),
+      upsertDoc(coll, 'tasks', JSON.stringify(tasks), now),
+      upsertDoc(coll, 'notes', JSON.stringify(notes), now),
     ]);
   } catch (e) {
     console.warn('Sync push failed:', e.message);
   }
 }
 
+async function upsertDoc(coll, docType, data, updatedAt) {
+  const res = await coll.where({ doc_type: docType }).get();
+  if (res.data && res.data.length > 0) {
+    const existing = res.data[0];
+    await coll.doc(existing._id).update({ data, updated_at: updatedAt });
+  } else {
+    await coll.add({ doc_type: docType, data, updated_at: updatedAt });
+  }
+}
+
 /** Pull cloud data → merge into local. Returns { tasks, notes } or null. */
 export async function pullAndMerge(localTasks, localNotes) {
-  if (!ready) return null;
-  const base = getBase();
+  if (!ready || !db) return null;
+  const coll = db.collection('sync_data');
   try {
     const [taskRes, noteRes] = await Promise.all([
-      fetch(`${base}?doc=tasks`),
-      fetch(`${base}?doc=notes`),
+      coll.where({ doc_type: 'tasks' }).get(),
+      coll.where({ doc_type: 'notes' }).get(),
     ]);
 
     let cloudTasks = null;
     let cloudNotes = null;
 
-    if (taskRes.ok) {
-      try {
-        const json = await taskRes.json();
-        cloudTasks = parseData(json.data);
-      } catch {}
+    if (taskRes.data && taskRes.data.length > 0) {
+      try { cloudTasks = parseData(taskRes.data[0].data); } catch {}
     }
-    if (noteRes.ok) {
-      try {
-        const json = await noteRes.json();
-        cloudNotes = parseData(json.data);
-      } catch {}
+    if (noteRes.data && noteRes.data.length > 0) {
+      try { cloudNotes = parseData(noteRes.data[0].data); } catch {}
     }
 
     if (!cloudTasks && !cloudNotes) return null;
