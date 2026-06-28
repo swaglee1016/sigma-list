@@ -46,7 +46,7 @@ src/
 - **List** — Active/Done sections sorted by quadrant priority
 - **Calendar** — Month grid with due-date dots and daily task detail
 - **Notes** — Dual-column Reflections / Ideas with cloud sync
-- **Cloud sync** — Firebase Firestore, push on save, auto-pull on startup + every 30s
+- **Cloud sync** — Tencent CloudBase NoSQL, push on save, auto-pull on startup + every 30s
 - **Due dates** with local notifications on native platforms
 - **Export** — JSON backup via native share sheet or browser download
 - **Offline-first** — local storage always works, cloud syncs when online
